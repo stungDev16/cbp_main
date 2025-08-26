@@ -20,11 +20,10 @@ import publicRoutesMap from "./public/config.ts";
 import type { RoutesMapInterface } from "@/router/interface/routesMap.interface.ts";
 import useLanguage from "@/context/Translation/hooks/useLanguage.tsx";
 import useNavigate from "@/hooks/useNavigate.tsx";
-// import { useUser } from "@/context/user/hooks/useUser.ts";
+import { useUser } from "@/context/user/hooks/useUser.ts";
 
 export const MainRouters = ({ ...props }) => {
-  // const { isAuth } = useUser();
-  const isAuth = true;
+  const { isAuth } = useUser();
   const { lang } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();

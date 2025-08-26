@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import useLoading from "@/context/Loading/hooks/useLoading";
 import tw from "@/helpers/tailwind.helper";
+import { useUser } from "@/context/user/hooks/useUser";
 
 function Loading() {
+  const { loading: loadingUser } = useUser()
   const { loading } = useLoading();
 
   const spinnerVariants = {
@@ -20,10 +22,10 @@ function Loading() {
     <motion.div
       className={tw(
         "fixed inset-0 flex items-center justify-center bg-primary z-50",
-        loading ? "opacity-30 visible" : "opacity-0 invisible"
+        loading || loadingUser ? "opacity-30 visible" : "opacity-0 invisible"
       )}
       initial="hidden"
-      animate={loading ? "visible" : "hidden"}
+      animate={loading || loadingUser ? "visible" : "hidden"}
       exit="hidden"
     >
       <motion.div

@@ -23,6 +23,7 @@ import { useUser } from "@/context/user/hooks/useUser";
 import useNavigate from "@/hooks/useNavigate";
 import Link from "@/components/common/Link";
 import { userService } from "@/apis/services/auth/user-service";
+import Client from "@/apis/client";
 
 interface LoginFormData {
   email: string;
@@ -83,13 +84,14 @@ export default function LoginPage({
   const handleLogin = async (credentials: LoginFormData) => {
     try {
       const nextPath = props?.searchParams?.next || "";
-      const { data: response } = await userService.login(credentials);
-      if (!response.success) {
+      const { data,success,rawData } = await userService.login(credentials);
+      if (!success) {
         return toast.error("Tài khoản hoặc mật khẩu không đúng");
       }
-      setAccessFromToLocalStorage(response.data.access_token);
-      setRefreshFromToLocalStorage(response.data.refresh_token);
-      setUser(true);
+      setAccessFromToLocalStorage(data.access_token);
+      setRefreshFromToLocalStorage(data.refresh_token);
+      Client.setToken(data.access_token);
+      setUser(rawData?.user);
       toast.success("Login successful!");
       if (nextPath) {
         return navigate(nextPath);

@@ -1,9 +1,6 @@
-import { useDispatch, useSelector } from "react-redux";
-import type { RootState } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { setDevice } from "@/store/slices/adb";
 import { useState } from "react";
 import { DEAULT_BIT_RATE, DEAULT_MAX_FPS } from "@/constants";
 
@@ -13,8 +10,6 @@ interface DeviceActionsProps {
 }
 
 export default function DeviceActions({ isWsOpen, onStart }: DeviceActionsProps) {
-  const dispatch = useDispatch();
-  const { devices, device } = useSelector((state: RootState) => state.adb);
   const [maxFps, setMaxFps] = useState<number>(DEAULT_MAX_FPS);
   const [bitRate, setBitRate] = useState<number>(DEAULT_BIT_RATE);
 

@@ -7,6 +7,7 @@ import {
 } from "@/lib/utils";
 import type { UserContextType } from "@/context/user/_interface/UseruageContextType";
 import { userService } from "@/apis/services/auth/user-service";
+import LoadingSystem from "@/components/lazy/loading/LoadingSystem";
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState(null);
@@ -14,12 +15,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserData = async () => {
     try {
-      const { data: result } = await userService.me();
-      if (result.isError) {
+      const { data, success } = await userService.me();
+      if (!success) {
         setLoading(false);
         return;
       }
-      setUser(result?.data);
+      setUser(data);
     } catch (error: any) {
       console.log("Error fetching user data:", error);
 
@@ -37,6 +38,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    setLoading(true);
     const token = getAccessFromLocalStorage();
     if (token) {
       fetchUserData();
@@ -46,6 +48,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const isAuth = useMemo(() => !!user && !!getAccessFromLocalStorage(), [user]);
+
+  if (loading) return <LoadingSystem />
+
 
   const value: UserContextType = {
     user,

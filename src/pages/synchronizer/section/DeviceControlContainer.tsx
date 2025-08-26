@@ -8,7 +8,6 @@ import React, {
   useMemo,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import type { RootState, AppDispatch } from "@/store";
 import {
   ScrcpyVideoCodecId,
   ScrcpyAudioCodec,
@@ -34,9 +33,9 @@ import { AacDecodeStream, OpusDecodeStream } from "@/lib/audio-decode-stream";
 import { DEAULT_BIT_RATE, DEAULT_MAX_FPS, PACK_OPTIONS } from "@/constants";
 import { streamingService } from "@/apis/services/stream/streaming-service";
 import { mapClientToDevicePosition } from "@/lib/mapClientToDevicePosition";
-import DeviceControls from "@/components/devices/DeviceControls";
 
 import { useDevices } from "@/context/devices/hooks/useDevices";
+import DeviceCtrolItem from "./DeviceCtrolItem";
 
 const MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON = [
   AndroidMotionEventButton.Primary,
@@ -47,12 +46,7 @@ const MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON = [
 ];
 
 const DeviceControlContainer: React.FC = () => {
-  const { selectedDevices, screenScale } = useDevices()
-  const dispatch = useDispatch<AppDispatch>();
-  const { device, display, audioEncoder, videoEncoder } = useSelector(
-    (state: RootState) => state.adb
-  );
-
+  const { selectedDevices } = useDevices()
   // Refs for DOM elements and streaming objects
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -550,7 +544,7 @@ const DeviceControlContainer: React.FC = () => {
         setFramesSkipped(fs);
       }, 1000);
     },
-    [dispose, audioEncoder, videoEncoder, unpacker]
+    [dispose, unpacker]
   );
 
   // Handle wheel events for scrolling
@@ -692,21 +686,7 @@ const DeviceControlContainer: React.FC = () => {
     <div className="bg-background flex-1">
       <div className="container mx-auto">
         <div className="w-full flex flex-wrap gap-2">
-          {selectedDevices.map((device, id) => (
-            <div
-            
-              key={id}
-              className="p-4 border min-w-[10rem] min-h-[15rem] transition-all duration-200"
-              style={{
-                width: `${screenScale * 2.5}px`,
-                height: `${screenScale * 4}px`,
-                maxWidth: '100%',
-                maxHeight: '100%',
-              }}
-            >
-              <div className="text-xs text-center">{device.seri}</div>
-            </div>
-          ))}
+          {selectedDevices.map((device, id) => <DeviceCtrolItem key={id} device={device} index={id} />)}
           {/* <div
               ref={fullscreenRef}
               className="w-full h-full flex flex-col bg-black"

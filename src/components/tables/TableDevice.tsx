@@ -1,4 +1,4 @@
-import { useSelector } from "react-redux";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
     type ColumnDef,
@@ -36,16 +36,17 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { useState, useMemo, useCallback } from "react";
-import type { RootState } from "@/store";
+import { useState, useMemo } from "react";
 import { useDevices } from "@/context/devices/hooks/useDevices";
 
 export type Device = {
-    id: string
-    seri: string
-    status: "active" | "inactive"
-    desc: string
-}
+    id: string | number;
+    name: string;
+    seri: string;
+    status: "active" | "inactive";
+    expiration_date: string;
+    [key: string]: unknown;
+};
 
 const useDeviceColumns = () => useMemo<ColumnDef<Device>[]>(() => [
     {
@@ -73,51 +74,58 @@ const useDeviceColumns = () => useMemo<ColumnDef<Device>[]>(() => [
         enableHiding: false,
     },
     {
+        accessorKey: "id",
+        header: "ID",
+        cell: ({ row }) => <div>{row.original.id}</div>,
+    },
+    {
+        accessorKey: "name",
+        header: "Tên thiết bị",
+        cell: ({ row }) => <div>{row.original.name}</div>,
+    },
+    {
         accessorKey: "seri",
         header: "Seri",
         cell: ({ row }) => <div>{row.original.seri}</div>,
     },
     {
         accessorKey: "status",
-        header: "Status",
+        header: "Trạng thái",
         cell: ({ row }) => (
             <span
                 className={
                     row.original.status === "active"
                         ? "text-green-600"
-                        : row.original.status === "inactive"
-                            ? "text-yellow-600"
-                            : "text-red-600"
+                        : "text-red-600"
                 }
             >
-                {row.original.status}
+                {row.original.status === "active" ? "Active" : "Inactive"}
             </span>
         ),
     },
     {
-        accessorKey: "desc",
-        header: "Mô tả",
-        cell: ({ row }) => <div>{row.original.desc}</div>,
+        accessorKey: "expiration_date",
+        header: "Ngày hết hạn",
+        cell: ({ row }) => <div>{row.original.expiration_date}</div>,
     },
 ], []);
 
 
 export function TableDevice() {
-    const { setSelectedDevices, selectedDevices } = useDevices()
-    const { devices } = useSelector((state: RootState) => state.adb);
-    // Chuyển đổi dữ liệu sang dạng Device cho bảng, dùng useMemo để tối ưu
+    const { setSelectedDevices, selectedDevices, data } = useDevices()
     const tableData: Device[] = useMemo(() => {
-        const all = devices?.map((d) => ({
-            id: d.serial,
-            seri: d.serial,
-            status: d.displays && d.displays.length > 0 ? "active" : "inactive",
-            desc: `Có ${d.encoders?.length || 0} encoder, độ phân giải: ${d.displays && d.displays.length > 0 ? d.displays[0].resolution : 'N/A'}`,
+        const all = data?.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            seri: d.serial_number,
+            status: d.status === 1 ? "active" : "inactive",
+            expiration_date: d.expiration_date,
             ...d
         })) || [];
         if (!selectedDevices?.length) return all;
         const selectedIds = new Set(selectedDevices.map(d => d.id));
         return all.filter(d => !selectedIds.has(d.id));
-    }, [devices, selectedDevices]);
+    }, [data, selectedDevices]);
 
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -128,7 +136,7 @@ export function TableDevice() {
     const table = useReactTable({
         data: tableData,
         columns,
-        getRowId: row => row.id, // Đảm bảo rowSelection hoạt động đúng với id là serial
+        getRowId: row => String(row.id),
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
@@ -248,7 +256,7 @@ export function TableDevice() {
                     onClick={() => {
                         const selectedRows = table.getSelectedRowModel().rows.map(row => row.original);
                         setSelectedDevices(selectedRows);
-                        setRowSelection({}); 
+                        setRowSelection({});
                     }}
                 >
                     Add
