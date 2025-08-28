@@ -9,11 +9,12 @@ export const DevicesProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [data, setData] = useState<any[]>([]);
     const [selectedDevices, setSelectedDevices] = useState<any[]>([]);
 
+
     const value: DevicesContextType = useMemo(() => ({
         selectedDevices,
         setSelectedDevices,
-        data
-    }), [selectedDevices, data]);
+        data,
+    }), [selectedDevices, data,]);
     useEffect(() => {
         let mounted = true;
         const initialize = async () => {

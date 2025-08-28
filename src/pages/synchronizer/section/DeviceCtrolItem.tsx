@@ -1,35 +1,16 @@
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  // ScrcpyVideoCodecId,
   ScrcpyAudioCodec,
-  AndroidKeyCode,
-  AndroidKeyEventAction,
-  AndroidKeyEventMeta,
-  AndroidMotionEventAction,
-  AndroidMotionEventButton,
-  ScrcpyPointerId,
-  ScrcpyHoverHelper,
 } from "@yume-chan/scrcpy";
-import { mapClientToDevicePosition } from "@/lib/mapClientToDevicePosition";
 import { Packr, Unpackr } from "msgpackr";
 import { DEAULT_BIT_RATE, DEAULT_MAX_FPS, PACK_OPTIONS } from "@/constants";
 import { streamingService } from "@/apis/services/stream/streaming-service";
 import { AacDecodeStream, OpusDecodeStream } from "@/lib/audio-decode-stream";
-// import { TinyH264Decoder } from "@yume-chan/scrcpy-decoder-tinyh264";
 import { WebCodecsVideoDecoder } from "@yume-chan/scrcpy-decoder-webcodecs";
+import { useDeviceControl } from "./_hook/useControlDevices";
 
-
-const MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON = [
-  AndroidMotionEventButton.Primary,
-  AndroidMotionEventButton.Tertiary,
-  AndroidMotionEventButton.Secondary,
-  AndroidMotionEventButton.Back,
-  AndroidMotionEventButton.Forward,
-];
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
-  console.log(JSON.parse(JSON.parse(device.metadata)).encoders);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const audioPlayerRef = useRef<any>(null);
@@ -41,7 +22,6 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
   const videoControllerRef = useRef<any>(null);
   const audioControllerRef = useRef<any>(null);
   const framesIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const hoverHelperRef = useRef(new ScrcpyHoverHelper());
   const startedRef = useRef(false);
   const widthRef = useRef(0);
   const heightRef = useRef(0);
@@ -51,102 +31,8 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
   const isStreamingRef = useRef(false);
   const isWsOpenRef = useRef(false);
 
-  // control
-  const controlLeftRef = useRef(false)
-  const controlRightRef = useRef(false)
-  const shiftLeftRef = useRef(false)
-  const shiftRightRef = useRef(false)
-  const altLeftRef = useRef(false)
-  const altRightRef = useRef(false)
-  const metaLeftRef = useRef(false)
-  const metaRightRef = useRef(false)
-  const capsLockRef = useRef(false)
-  const numLockRef = useRef(true)
-  const keysRef = useRef(new Set<number>());
-
-
   const packer = useMemo(() => new Packr(PACK_OPTIONS), []);
   const unpacker = useMemo(() => new Unpackr(PACK_OPTIONS), []);
-  const setModifier = useCallback(
-    (keyCode: number, value: boolean) => {
-      switch (keyCode) {
-        case AndroidKeyCode.ControlLeft:
-          controlLeftRef.current = value;
-          break;
-        case AndroidKeyCode.ControlRight:
-          controlRightRef.current = value;
-          break;
-        case AndroidKeyCode.ShiftLeft:
-          shiftLeftRef.current = value;
-          break;
-        case AndroidKeyCode.ShiftRight:
-          shiftRightRef.current = value;
-          break;
-        case AndroidKeyCode.AltLeft:
-          altLeftRef.current = value;
-          break;
-        case AndroidKeyCode.AltRight:
-          altRightRef.current = value;
-          break;
-        case AndroidKeyCode.MetaLeft:
-          metaLeftRef.current = value;
-          break;
-        case AndroidKeyCode.MetaRight:
-          metaRightRef.current = value;
-          break;
-        case AndroidKeyCode.CapsLock:
-          if (value) {
-            capsLockRef.current = !capsLockRef.current;
-          }
-          break;
-        case AndroidKeyCode.NumLock:
-          if (value) {
-            numLockRef.current = !numLockRef.current;
-          }
-          break;
-      }
-    },
-    [capsLockRef, numLockRef]
-  );
-
-  // Get meta state for key events
-  const getMetaState = useCallback(() => {
-    let metaState = 0;
-    if (altLeftRef.current) {
-      metaState |= AndroidKeyEventMeta.AltOn | AndroidKeyEventMeta.AltLeftOn;
-    }
-    if (altRightRef.current) {
-      metaState |= AndroidKeyEventMeta.AltOn | AndroidKeyEventMeta.AltRightOn;
-    }
-    if (shiftLeftRef.current) {
-      metaState |=
-        AndroidKeyEventMeta.ShiftOn | AndroidKeyEventMeta.ShiftLeftOn;
-    }
-    if (shiftRightRef.current) {
-      metaState |=
-        AndroidKeyEventMeta.ShiftOn | AndroidKeyEventMeta.ShiftRightOn;
-    }
-    if (controlLeftRef.current) {
-      metaState |= AndroidKeyEventMeta.CtrlOn | AndroidKeyEventMeta.CtrlLeftOn;
-    }
-    if (controlRightRef.current) {
-      metaState |= AndroidKeyEventMeta.CtrlOn | AndroidKeyEventMeta.CtrlRightOn;
-    }
-    if (metaLeftRef.current) {
-      metaState |= AndroidKeyEventMeta.MetaOn | AndroidKeyEventMeta.MetaLeftOn;
-    }
-    if (metaRightRef.current) {
-      metaState |= AndroidKeyEventMeta.MetaOn | AndroidKeyEventMeta.MetaRightOn;
-    }
-    if (capsLockRef.current) {
-      metaState |= AndroidKeyEventMeta.CapsLockOn;
-    }
-    if (numLockRef.current) {
-      metaState |= AndroidKeyEventMeta.NumLockOn;
-    }
-    return metaState;
-  }, [altLeftRef, altRightRef, shiftLeftRef, shiftRightRef, controlLeftRef, controlRightRef, metaLeftRef, metaRightRef, capsLockRef, numLockRef]);
-
 
   const send = useCallback(
     (message: any) => {
@@ -157,73 +43,25 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
     },
     [packer]
   );
-  // Key down handler
-  const down = useCallback(
-    async (key: string) => {
-      const keyCode = (AndroidKeyCode as any)[key];
-      if (!keyCode) {
-        console.log("unknown key");
-        return;
-      }
+  // Sử dụng hook để xử lý sự kiện  
+  const {
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerLeave,
+    handleContextMenu,
+    handleKeyDown,
+    handleKeyUp,
+    handleWheel,
+  } = useDeviceControl({
+    send,
+    widthRef,
+    heightRef,
+    rotationRef,
+    rendererRef,
+    fullscreenRef,
+  });
 
-      setModifier(keyCode, true);
-      keysRef.current.add(keyCode);
-
-      const payload = {
-        action: AndroidKeyEventAction.Down,
-        keyCode,
-        metaState: getMetaState(),
-        repeat: 0,
-      };
-      send({
-        cmd: "injectKeyCode",
-        payload,
-      });
-    },
-    [setModifier, keysRef, getMetaState, send]
-  );
-
-  // Key up handler
-  const up = useCallback(
-    async (key: string) => {
-      const keyCode = (AndroidKeyCode as any)[key];
-      if (!keyCode) {
-        return;
-      }
-
-      setModifier(keyCode, false);
-      keysRef.current.delete(keyCode);
-
-      send({
-        cmd: "injectKeyCode",
-        payload: {
-          action: AndroidKeyEventAction.Up,
-          keyCode,
-          metaState: getMetaState(),
-          repeat: 0,
-        },
-      });
-    },
-    [setModifier, keysRef, getMetaState, send]
-  );
-
-  // Reset all keys
-  const reset = useCallback(async () => {
-    controlRightRef.current = false;
-    controlLeftRef.current = false;
-    shiftRightRef.current = false;
-    shiftLeftRef.current = false;
-    altRightRef.current = false;
-    altLeftRef.current = false;
-    metaRightRef.current = false;
-    metaLeftRef.current = false;
-    for (const key of keysRef.current) {
-      up((AndroidKeyCode as any)[key]);
-    }
-    keysRef.current.clear();
-  }, [keysRef, up]);
-
-  // Dispose resources
   const dispose = useCallback(async () => {
     if (abortControllerRef.current) {
       await abortControllerRef.current.abort();
@@ -253,85 +91,16 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
       containerRef.current.firstChild.remove();
     }
   }, []);
-
-  const injectTouch = useCallback(
-    (action: AndroidMotionEventAction, e: PointerEvent) => {
-      const { pointerType } = e;
-      let pointerId;
-      if (pointerType === "mouse") {
-        // Android 13 has bug with mouse injection
-        pointerId = ScrcpyPointerId.Finger;
-      } else {
-        pointerId = BigInt(e.pointerId);
-      }
-
-      if (!rendererRef.current) return;
-
-      const { x, y } = mapClientToDevicePosition(
-        { x: e.clientX, y: e.clientY },
-        { width: widthRef.current, height: heightRef.current, rotation: rotationRef.current },
-        rendererRef.current
-      );
-
-      const messages = hoverHelperRef.current.process({
-        action,
-        pointerId,
-        screenWidth: widthRef.current,
-        screenHeight: heightRef.current,
-        pointerX: x,
-        pointerY: y,
-        pressure: e.pressure,
-        actionButton: MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON[e.button],
-        buttons: e.buttons,
-      });
-
-      for (const message of messages) {
-        send({
-          cmd: "injectTouch",
-          payload: message,
-        });
-      }
-    },
-    [widthRef, heightRef, rotationRef, send]
-  );
-  const handleWheel = useCallback(
-    (e: WheelEvent) => {
-      fullscreenRef.current?.focus();
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (!rendererRef.current) return;
-
-      const { x, y } = mapClientToDevicePosition(
-        { x: e.clientX, y: e.clientY },
-        { width: widthRef.current, height: heightRef.current, rotation: rotationRef.current },
-        rendererRef.current
-      );
-
-      send({
-        cmd: "injectScroll",
-        payload: {
-          screenWidth: widthRef.current,
-          screenHeight: heightRef.current,
-          rotation: rotationRef.current,
-          pointerX: x,
-          pointerY: y,
-          scrollX: -e.deltaX / 100,
-          scrollY: -e.deltaY / 100,
-          buttons: 0,
-        },
-      });
-    },
-    [widthRef, heightRef, rotationRef, send]
-  );
   const start = useCallback(
-    async ({ maxFps, bitRate }: { maxFps: number; bitRate: number }) => {
+    async ({ maxFps, bitRate, order_id }: { maxFps: number; bitRate: number; order_id: string }) => {
       await dispose();
-
+      console.log(maxFps, bitRate,);
+      const { data } = await streamingService.start_streaming({ order_id });
       abortControllerRef.current = new AbortController();
       isStreamingRef.current = true;
       const enableAudio = false;
       const audioEncoderObj = { codec: "off" } as any;
+
       decoderRef.current = new WebCodecsVideoDecoder(0x68_32_36_34, false);
       if (decoderRef.current && containerRef.current) {
         rendererRef.current = decoderRef.current.renderer as HTMLElement;
@@ -352,16 +121,16 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
         );
       }
 
-      // Setup event listeners
+      // Setup event listeners - sử dụng handleWheel từ hook  
       if (fullscreenRef.current) {
         fullscreenRef.current.addEventListener("wheel", handleWheel, {
           passive: false,
         });
-        fullscreenRef.current.tabIndex = 0;
+        fullscreenRef.current.tabIndex = index;
         rendererRef.current?.setAttribute("aria-label", "Device Screen");
       }
 
-      // Setup video stream
+      // Setup video stream  
       new ReadableStream({
         start(controller) {
           videoControllerRef.current = controller;
@@ -376,7 +145,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
           }
         });
 
-      // Setup audio stream based on codec (disabled for now)
+      // Setup audio streams (giữ nguyên logic audio)  
       if (enableAudio && ["off", "raw"].includes(audioEncoderObj?.codec || "")) {
         new ReadableStream({
           start(controller) {
@@ -441,12 +210,10 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
           },
         })
           .pipeThrough(
-            // Cast to DOM TransformStream to satisfy TS pipeThrough overloads
             (new OpusDecodeStream({
               codec: ScrcpyAudioCodec.OPUS.webCodecId,
               numberOfChannels: 2,
               sampleRate: 48000,
-
             }) as unknown) as TransformStream<any, any>,
             {
               signal: abortControllerRef.current.signal,
@@ -468,23 +235,14 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
             }
           });
       }
-
-      // Start audio player (disabled for now)
       if (enableAudio) {
         await audioPlayerRef.current?.start();
       }
 
-      // Initialize WebSocket connection
+      // Initialize WebSocket connection  
       wsRef.current = await streamingService.init({
-        device: device.serial_number,
-        audio: true,
-        audioCodec: "raw",
-        audioEncoder: "raw",
-        video: true,
-        videoCodec: "h264",
-        videoEncoder: "OMX.Exynos.AVC.Encoder", // send an encoder name to satisfy server
-        videoBitRate: bitRate,
-        maxFps: maxFps,
+        wsUri: data?.stream_url,
+        order_id,
         onopen: (ws: WebSocket, id: string, evt: Event) => {
           console.log(`ID=${id} CONNECTED`);
           isWsOpenRef.current = true;
@@ -521,95 +279,61 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
         },
       });
 
-      // Start frames counter
       framesIntervalRef.current = setInterval(() => {
         const fr = decoderRef.current?.framesRendered || 0;
         const fs = decoderRef.current?.framesSkipped || 0;
         framesRenderedRef.current = fr;
         framesSkippedRef.current = fs;
-        framesRenderedRef.current = fr;
-        framesSkippedRef.current = fs;
       }, 1000);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dispose, unpacker]
+    [dispose, unpacker, handleWheel, index]
   );
 
-  // Event handlers
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      injectTouch(AndroidMotionEventAction.Down, e.nativeEvent);
-    },
-    [injectTouch]
-  );
-
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      injectTouch(AndroidMotionEventAction.Move, e.nativeEvent);
-    },
-    [injectTouch]
-  );
-
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      injectTouch(AndroidMotionEventAction.Up, e.nativeEvent);
-    },
-    [injectTouch]
-  );
-
-  const handlePointerLeave = useCallback(
-    (e: React.PointerEvent) => {
-      injectTouch(AndroidMotionEventAction.Up, e.nativeEvent);
-    },
-    [injectTouch]
-  );
-
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-  }, []);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      e.preventDefault();
-      down(e.code);
-    },
-    [down]
-  );
-
-  const handleKeyUp = useCallback(
-    (e: React.KeyboardEvent) => {
-      e.preventDefault();
-      up(e.code);
-    },
-    [up]
-  );
+  // Cleanup wheel event listener  
   useEffect(() => {
-    if (!startedRef.current) {
+    const currentRef = fullscreenRef.current;
+    return () => {
+      if (currentRef) {
+        currentRef.removeEventListener("wheel", handleWheel);
+      }
+    };
+  }, [handleWheel]);
+
+  useEffect(() => {
+    if (!startedRef.current && device) {
       startedRef.current = true;
-      start({ maxFps: DEAULT_MAX_FPS, bitRate: DEAULT_BIT_RATE });
+      start({ maxFps: DEAULT_MAX_FPS, bitRate: DEAULT_BIT_RATE, order_id: device.id });
     }
     return () => {
       startedRef.current = false;
       dispose();
     };
-  })
+  }, [device, start, dispose]);
 
-
-  return <div
-    ref={fullscreenRef}
-    className="border flex bg-black transition-all duration-200"
-    tabIndex={index}
-    onKeyDown={handleKeyDown}
-    onKeyUp={handleKeyUp}
-  >
-    <div ref={containerRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onPointerLeave={handlePointerLeave}
-      onContextMenu={handleContextMenu}
-    />
-  </div>;
+  return (
+    <div
+      ref={fullscreenRef}
+      tabIndex={index}
+      onKeyDown={handleKeyDown}
+      onKeyUp={handleKeyUp}
+      // onClick={(e) => {
+      //   e.stopPropagation();
+      //   if (fullscreenRef.current) {
+      //     fullscreenRef.current.classList.toggle("select");
+      //   }
+      // }}
+    >
+      <div
+        ref={containerRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onContextMenu={handleContextMenu}
+      />
+    </div>
+  );
 }
+
 export default memo(DeviceCtrolItem);

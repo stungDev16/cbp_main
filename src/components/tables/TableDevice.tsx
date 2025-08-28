@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -38,13 +37,12 @@ import {
 } from "@/components/ui/table"
 import { useState, useMemo } from "react";
 import { useDevices } from "@/context/devices/hooks/useDevices";
-import { streamingService } from "@/apis/services/stream/streaming-service"
 
 export type Device = {
     id: string | number;
     name: string;
     seri: string;
-    status: "active" | "inactive";
+    status: 1 | 0;
     expiration_date: string;
     [key: string]: unknown;
 };
@@ -95,12 +93,12 @@ const useDeviceColumns = () => useMemo<ColumnDef<Device>[]>(() => [
         cell: ({ row }) => (
             <span
                 className={
-                    row.original.status === "active"
+                    row.original.status === 1
                         ? "text-green-600"
                         : "text-red-600"
                 }
             >
-                {row.original.status === "active" ? "Active" : "Inactive"}
+                {row.original.status === 1 ? "Active" : "Inactive"}
             </span>
         ),
     },
@@ -112,7 +110,7 @@ const useDeviceColumns = () => useMemo<ColumnDef<Device>[]>(() => [
 ], []);
 
 
-export function TableDevice() {
+export function TableDevice({ open, setOpen }: { open: boolean, setOpen: (open: boolean) => void }) {
     const { setSelectedDevices, selectedDevices, data } = useDevices()
     const tableData: Device[] = useMemo(() => {
         const all = data?.map((d: any) => ({
@@ -123,6 +121,8 @@ export function TableDevice() {
             expiration_date: d.expiration_date,
             ...d
         })) || [];
+        console.log(all);
+        
         if (!selectedDevices?.length) return all;
         const selectedIds = new Set(selectedDevices.map(d => d.id));
         return all.filter(d => !selectedIds.has(d.id));
@@ -256,11 +256,9 @@ export function TableDevice() {
                     disabled={!table.getSelectedRowModel().rows.length}
                     onClick={async () => {
                         const selectedRows = table.getSelectedRowModel().rows.map(row => row.original);
-                        const { data } = await streamingService.start_streaming({ order_id: "33" });
-                        console.log(data);
-                        console.log(JSON.parse(data?.metadata?.encoders));
                         setSelectedDevices(selectedRows);
                         setRowSelection({});
+                        setOpen(false);
                     }}
                 >
                     Add

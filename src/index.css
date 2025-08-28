@@ -283,3 +283,7 @@ input:-webkit-autofill:active {
 ::-webkit-scrollbar-thumb {
   @apply rounded-full bg-border border-[1px] border-transparent border-solid bg-clip-padding;
 }
+
+.select {
+  border: 4px solid rgba(255, 255, 255, 0.5);
+}
