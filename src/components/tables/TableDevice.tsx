@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/table"
 import { useState, useMemo } from "react";
 import { useDevices } from "@/context/devices/hooks/useDevices";
+import { streamingService } from "@/apis/services/stream/streaming-service"
 
 export type Device = {
     id: string | number;
@@ -253,8 +254,11 @@ export function TableDevice() {
                 </DialogClose>
                 <Button
                     disabled={!table.getSelectedRowModel().rows.length}
-                    onClick={() => {
+                    onClick={async () => {
                         const selectedRows = table.getSelectedRowModel().rows.map(row => row.original);
+                        const { data } = await streamingService.start_streaming({ order_id: "33" });
+                        console.log(data);
+                        console.log(JSON.parse(data?.metadata?.encoders));
                         setSelectedDevices(selectedRows);
                         setRowSelection({});
                     }}

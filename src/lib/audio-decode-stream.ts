@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { TransformStream } from "@yume-chan/stream-extra";
 
 interface AudioChunk {

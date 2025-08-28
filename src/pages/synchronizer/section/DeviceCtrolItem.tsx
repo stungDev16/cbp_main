@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  ScrcpyVideoCodecId,
+  // ScrcpyVideoCodecId,
   ScrcpyAudioCodec,
   AndroidKeyCode,
   AndroidKeyEventAction,
@@ -15,7 +15,7 @@ import { Packr, Unpackr } from "msgpackr";
 import { DEAULT_BIT_RATE, DEAULT_MAX_FPS, PACK_OPTIONS } from "@/constants";
 import { streamingService } from "@/apis/services/stream/streaming-service";
 import { AacDecodeStream, OpusDecodeStream } from "@/lib/audio-decode-stream";
-import { TinyH264Decoder } from "@yume-chan/scrcpy-decoder-tinyh264";
+// import { TinyH264Decoder } from "@yume-chan/scrcpy-decoder-tinyh264";
 import { WebCodecsVideoDecoder } from "@yume-chan/scrcpy-decoder-webcodecs";
 
 
@@ -29,7 +29,7 @@ const MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON = [
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
   console.log(JSON.parse(JSON.parse(device.metadata)).encoders);
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const audioPlayerRef = useRef<any>(null);
@@ -332,14 +332,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
       isStreamingRef.current = true;
       const enableAudio = false;
       const audioEncoderObj = { codec: "off" } as any;
-      // Choose video encoder similar to Vue: prefer h264 if available
-      // let vEnc: any = videoEncoder;
-      // // If store doesn't keep encoder object, try derive from metainfo in adb slice
-      // // fallback to h264
-      // decoderRef.current = new TinyH264Decoder();
       decoderRef.current = new WebCodecsVideoDecoder(0x68_32_36_34, false);
-
-      // Setup renderer
       if (decoderRef.current && containerRef.current) {
         rendererRef.current = decoderRef.current.renderer as HTMLElement;
         if (rendererRef.current) {
@@ -421,7 +414,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
               codec: ScrcpyAudioCodec.AAC.webCodecId,
               numberOfChannels: 2,
               sampleRate: 48000,
-            }),
+            }) as TransformStream<any, any>,
             {
               signal: abortControllerRef.current.signal,
             }
@@ -448,12 +441,13 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
           },
         })
           .pipeThrough(
-            new OpusDecodeStream({
+            // Cast to DOM TransformStream to satisfy TS pipeThrough overloads
+            (new OpusDecodeStream({
               codec: ScrcpyAudioCodec.OPUS.webCodecId,
               numberOfChannels: 2,
               sampleRate: 48000,
 
-            }),
+            }) as unknown) as TransformStream<any, any>,
             {
               signal: abortControllerRef.current.signal,
             }
@@ -468,7 +462,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
               signal: abortControllerRef.current.signal,
             }
           )
-          .catch((e) => {
+          .catch(() => {
             if (abortControllerRef.current?.signal.aborted) {
               return;
             }
