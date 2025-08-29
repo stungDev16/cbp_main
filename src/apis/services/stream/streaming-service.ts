@@ -48,11 +48,11 @@ class StreamingService {
   }
 
   start_streaming({
-    order_id,
+    id,
   }: {
-    order_id: string;
+    id: string;
   }): Promise<ApiResponse<any>> {
-    return Client.post(`${this.#config}/startStream`, { order_id });
+    return Client.post(`${this.#config}/startStream`, { order_id: id });
   }
 }
 
