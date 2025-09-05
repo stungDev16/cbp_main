@@ -5,38 +5,41 @@ import { DevicesContext } from "./Devices.context";
 import { deviceService } from "@/apis/services/device/device-service";
 import { toast } from "sonner";
 
-export const DevicesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [data, setData] = useState<any[]>([]);
-    const [selectedDevices, setSelectedDevices] = useState<any[]>([]);
+export const DevicesProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [data, setData] = useState<any[]>([]);
+  const [selectedDevices, setSelectedDevices] = useState<any[]>([]);
+  const [screenScale, setScreenScale] = useState<number>(50);
 
+  const value: DevicesContextType = useMemo(
+    () => ({
+      selectedDevices,
+      setSelectedDevices,
+      data,
+      screenScale,
+      setScreenScale,
+    }),
+    [selectedDevices, data, screenScale]
+  );
+  useEffect(() => {
+    let mounted = true;
+    const initialize = async () => {
+      const { data, success } = await deviceService.get_phone();
+      if (!success) {
+        toast.error("Failed to fetch device data");
+        return;
+      }
+      setData(data?.items || []);
+      if (!mounted) return;
+    };
+    initialize();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-    const value: DevicesContextType = useMemo(() => ({
-        selectedDevices,
-        setSelectedDevices,
-        data,
-    }), [selectedDevices, data,]);
-    useEffect(() => {
-        let mounted = true;
-        const initialize = async () => {
-            const { data, success } = await deviceService.get_phone();
-            if (!success) {
-                toast.error("Failed to fetch device data");
-                return
-            };
-            setData(data?.items || [])
-            if (!mounted) return;
-        };
-        initialize();
-        return () => {
-            mounted = false;
-        };
-    }, []);
-
-    return (
-        <DevicesContext.Provider
-            value={value}
-        >
-            {children}
-        </DevicesContext.Provider>
-    );
+  return (
+    <DevicesContext.Provider value={value}>{children}</DevicesContext.Provider>
+  );
 };

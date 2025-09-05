@@ -2,17 +2,58 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
-import { Plus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, RefreshCcw } from "lucide-react";
 import AddDevice from "./button/AddDevice";
 import { useDevices } from "@/context/devices/hooks/useDevices";
+import { deviceControlSubject } from "@/Pattern/DeviceControlSubject";
+import { useState } from "react";
+
 export default function ControlPanel() {
-  const { screenScale, setScreenScale } = useDevices();
+  const { screenScale, setScreenScale, selectedDevices } = useDevices();
+  const [isSyncEnabled, setIsSyncEnabled] = useState(
+    deviceControlSubject.isActive()
+  );
+
+  const handleSyncToggle = (checked: boolean) => {
+    if (checked) {
+      deviceControlSubject.enableSyncControl();
+    } else {
+      deviceControlSubject.disableSyncControl();
+    }
+    setIsSyncEnabled(checked);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow p-4 w-56 min-w-[200px] h-fit flex flex-col space-y-4 sticky top-0 ">
+    <div className="bg-white rounded-lg shadow p-4 w-56 min-w-[200px] h-fit flex flex-col space-y-4 sticky top-0">
+      {/* Sync Mode Toggle */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <RefreshCcw className="w-4 h-4" />
+          <span className="font-medium text-sm">Chế độ đồng bộ</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch checked={isSyncEnabled} onCheckedChange={handleSyncToggle} />
+          <span className="text-sm text-muted-foreground">
+            {isSyncEnabled ? "Bật" : "Tắt"}
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {deviceControlSubject.getObserverCount()} thiết bị đang sync
+        </div>
+      </div>
+
+      <Separator className="my-2" />
       <div className="space-y-1">
         <p className="font-medium text-sm">Tỷ lệ màn hình</p>
         <div className="flex items-center gap-3">
-          <Slider onValueChange={(value) => setScreenScale(value[0])} defaultValue={[screenScale]} max={100} step={1} className="flex-1" />
+          <Slider
+            onValueChange={(value) => setScreenScale(value[0])}
+            defaultValue={[screenScale]}
+            max={100}
+            step={1}
+            className="flex-1"
+          />
           <span className="w-10 text-right text-sm text-muted-foreground">
             {screenScale}%
           </span>
@@ -38,22 +79,25 @@ export default function ControlPanel() {
         >
           <Plus className="w-3 h-3" /> Xoay
         </Button>
-        <Button size="sm" className="flex-1 border border-border bg-gradient-to-br from-emerald-500 to-emerald-700">
+        <Button
+          size="sm"
+          className="flex-1 border border-border bg-gradient-to-br from-emerald-500 to-emerald-700"
+        >
           <Plus className="w-3 h-3" /> Cài đặt
         </Button>
       </div>
 
-      <Button size="sm" className="w-fit border border-border flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700">
+      <Button
+        size="sm"
+        className="w-fit border border-border flex items-center justify-center gap-2 bg-gradient-to-br from-emerald-500 to-emerald-700"
+      >
         <Plus className="w-4 h-4" /> Tiện ích
       </Button>
 
       <Separator className="my-2" />
 
       <div className="flex items-center gap-2">
-        <Checkbox
-          id="select-all"
-          className="border-gray-300"
-        />
+        <Checkbox id="select-all" className="border-gray-300" />
         <label
           htmlFor="select-all"
           className="text-sm font-medium text-foreground cursor-pointer"

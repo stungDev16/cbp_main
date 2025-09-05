@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useState, useMemo, useRef } from "react";
 import {
   AndroidKeyCode,
   AndroidKeyEventAction,
@@ -13,8 +13,7 @@ import { Packr, Unpackr } from "msgpackr";
 import { DEAULT_BIT_RATE, DEAULT_MAX_FPS, PACK_OPTIONS } from "@/constants";
 import { streamingService } from "@/apis/services/stream/streaming-service";
 import { WebCodecsVideoDecoder } from "@yume-chan/scrcpy-decoder-webcodecs";
-import { deviceControlSubject } from '@/Pattern/DeviceControlSubject';
-
+import { deviceControlSubject } from "@/Pattern/DeviceControlSubject";
 
 const MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON = [
   AndroidMotionEventButton.Primary,
@@ -24,7 +23,7 @@ const MOUSE_EVENT_BUTTON_TO_ANDROID_BUTTON = [
   AndroidMotionEventButton.Forward,
 ];
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
+function DeviceCtrolItem({ device, index }: { device: any; index: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const audioPlayerRef = useRef<any>(null);
@@ -47,18 +46,21 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
   const isWsOpenRef = useRef(false);
 
   // control
-  const controlLeftRef = useRef(false)
-  const controlRightRef = useRef(false)
-  const shiftLeftRef = useRef(false)
-  const shiftRightRef = useRef(false)
-  const altLeftRef = useRef(false)
-  const altRightRef = useRef(false)
-  const metaLeftRef = useRef(false)
-  const metaRightRef = useRef(false)
-  const capsLockRef = useRef(false)
-  const numLockRef = useRef(true)
+  const controlLeftRef = useRef(false);
+  const controlRightRef = useRef(false);
+  const shiftLeftRef = useRef(false);
+  const shiftRightRef = useRef(false);
+  const altLeftRef = useRef(false);
+  const altRightRef = useRef(false);
+  const metaLeftRef = useRef(false);
+  const metaRightRef = useRef(false);
+  const capsLockRef = useRef(false);
+  const numLockRef = useRef(true);
   const keysRef = useRef(new Set<number>());
 
+  const [isSyncEnabled, setIsSyncEnabled] = useState(
+    deviceControlSubject.isActive()
+  );
 
   const packer = useMemo(() => new Packr(PACK_OPTIONS), []);
   const unpacker = useMemo(() => new Unpackr(PACK_OPTIONS), []);
@@ -143,7 +145,18 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
       metaState |= AndroidKeyEventMeta.NumLockOn;
     }
     return metaState;
-  }, [altLeftRef, altRightRef, shiftLeftRef, shiftRightRef, controlLeftRef, controlRightRef, metaLeftRef, metaRightRef, capsLockRef, numLockRef]);
+  }, [
+    altLeftRef,
+    altRightRef,
+    shiftLeftRef,
+    shiftRightRef,
+    controlLeftRef,
+    controlRightRef,
+    metaLeftRef,
+    metaRightRef,
+    capsLockRef,
+    numLockRef,
+  ]);
 
   // Mục đích: Đóng gói và gửi message qua WebSocket tới thiết bị Android.
   // Tính năng: Là hàm giao tiếp chính giữa client và thiết bị Android qua WebSocket.
@@ -275,7 +288,11 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
 
       const { x, y } = mapClientToDevicePosition(
         { x: e.clientX, y: e.clientY },
-        { width: widthRef.current, height: heightRef.current, rotation: rotationRef.current },
+        {
+          width: widthRef.current,
+          height: heightRef.current,
+          rotation: rotationRef.current,
+        },
         rendererRef.current
       );
 
@@ -300,12 +317,12 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
 
       // Notify other observers when sync enabled
       deviceControlSubject.notify({
-        type: 'touch',
+        type: "touch",
         sourceDeviceId: device?.id,
         data: messages.length === 1 ? messages[0] : messages,
       });
     },
-  [widthRef, heightRef, rotationRef, send, device?.id]
+    [widthRef, heightRef, rotationRef, send, device?.id]
   );
 
   // Mục đích: Xử lý sự kiện cuộn chuột (wheel) và gửi sự kiện scroll tới thiết bị Android.
@@ -320,7 +337,11 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
 
       const { x, y } = mapClientToDevicePosition(
         { x: e.clientX, y: e.clientY },
-        { width: widthRef.current, height: heightRef.current, rotation: rotationRef.current },
+        {
+          width: widthRef.current,
+          height: heightRef.current,
+          rotation: rotationRef.current,
+        },
         rendererRef.current
       );
 
@@ -339,7 +360,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
       });
 
       deviceControlSubject.notify({
-        type: 'scroll',
+        type: "scroll",
         sourceDeviceId: device?.id,
         data: {
           screenWidth: widthRef.current,
@@ -353,13 +374,21 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
         },
       });
     },
-  [widthRef, heightRef, rotationRef, send, device?.id]
+    [widthRef, heightRef, rotationRef, send, device?.id]
   );
 
   // Mục đích: Khởi tạo và bắt đầu streaming video/audio từ thiết bị Android.
   // Tính năng: Thiết lập decoder, renderer, WebSocket, các stream audio/video, và các event handler.
   const start = useCallback(
-    async ({ maxFps, bitRate, order_id }: { maxFps: number; bitRate: number; order_id: string }) => {
+    async ({
+      maxFps,
+      bitRate,
+      order_id,
+    }: {
+      maxFps: number;
+      bitRate: number;
+      order_id: string;
+    }) => {
       console.log(order_id, maxFps, bitRate);
       await dispose();
       const { data } = await streamingService.start_streaming({ id: order_id });
@@ -508,7 +537,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
 
       // notify others
       deviceControlSubject.notify({
-        type: 'key',
+        type: "key",
         sourceDeviceId: device?.id,
         data: {
           action: AndroidKeyEventAction.Down,
@@ -518,7 +547,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
         },
       });
     },
-  [down, getMetaState, device?.id]
+    [down, getMetaState, device?.id]
   );
 
   const handleKeyUp = useCallback(
@@ -527,7 +556,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
       up(e.code);
 
       deviceControlSubject.notify({
-        type: 'key',
+        type: "key",
         sourceDeviceId: device?.id,
         data: {
           action: AndroidKeyEventAction.Up,
@@ -537,7 +566,7 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
         },
       });
     },
-  [up, getMetaState, device?.id]
+    [up, getMetaState, device?.id]
   );
 
   // Subscribe/unsubscribe observer (created inside effect so it can use latest `send`)
@@ -547,20 +576,20 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
       executeAction: (action: any) => {
         if (action.sourceDeviceId === device?.id) return;
         try {
-          if (action.type === 'touch') {
+          if (action.type === "touch") {
             const data = action.data;
             if (Array.isArray(data)) {
-              for (const d of data) send({ cmd: 'injectTouch', payload: d });
+              for (const d of data) send({ cmd: "injectTouch", payload: d });
             } else {
-              send({ cmd: 'injectTouch', payload: data });
+              send({ cmd: "injectTouch", payload: data });
             }
-          } else if (action.type === 'key') {
-            send({ cmd: 'injectKeyCode', payload: action.data });
-          } else if (action.type === 'scroll') {
-            send({ cmd: 'injectScroll', payload: action.data });
+          } else if (action.type === "key") {
+            send({ cmd: "injectKeyCode", payload: action.data });
+          } else if (action.type === "scroll") {
+            send({ cmd: "injectScroll", payload: action.data });
           }
         } catch (err) {
-          console.error('Failed executing mirrored action', err);
+          console.error("Failed executing mirrored action", err);
         }
       },
     };
@@ -581,7 +610,11 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
   useEffect(() => {
     if (!startedRef.current && device) {
       startedRef.current = true;
-      start({ maxFps: DEAULT_MAX_FPS, bitRate: DEAULT_BIT_RATE, order_id: device?.id });
+      start({
+        maxFps: DEAULT_MAX_FPS,
+        bitRate: DEAULT_BIT_RATE,
+        order_id: device?.id,
+      });
     }
     return () => {
       startedRef.current = false;
@@ -590,21 +623,41 @@ function DeviceCtrolItem({ device, index }: { device: any, index: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device]);
 
-  return <div
-    ref={fullscreenRef}
-    tabIndex={index}
-    onKeyDown={handleKeyDown}
-    onKeyUp={handleKeyUp}
-  >
+  // Subscribe to sync status changes
+  useEffect(() => {
+    const checkSyncStatus = () => {
+      setIsSyncEnabled(deviceControlSubject.isActive());
+    };
+
+    // Check initially
+    checkSyncStatus();
+
+    // Check periodically for sync status changes
+    const interval = setInterval(checkSyncStatus, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
     <div
-      ref={containerRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onPointerLeave={handlePointerLeave}
-      onContextMenu={handleContextMenu}
-    />
-  </div>;
+      ref={fullscreenRef}
+      className={`border flex bg-black transition-all duration-200 ${
+        isSyncEnabled ? "ring-2 ring-blue-500" : ""
+      }`}
+      tabIndex={index}
+      onKeyDown={handleKeyDown}
+      onKeyUp={handleKeyUp}
+    >
+      <div
+        ref={containerRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onContextMenu={handleContextMenu}
+      />
+    </div>
+  );
 }
 export default memo(DeviceCtrolItem);

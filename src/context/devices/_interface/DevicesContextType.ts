@@ -5,4 +5,6 @@ export interface DevicesContextType {
   selectedDevices: any[];
   setSelectedDevices: (devices: any[]) => void;
   data: any[];
+  screenScale: number;
+  setScreenScale: (scale: number) => void;
 }
